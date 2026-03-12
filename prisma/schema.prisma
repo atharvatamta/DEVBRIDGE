@@ -1,0 +1,105 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  //tells prisma to generate a typescript/JS client
+  provider = "prisma-client"
+  // controls where the generated code lands
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  // tells prisma we are using PostgreSQL as our database and to read the connection string
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+//keeps track of a user's auth state
+// "How did the user log in?"
+model Account {
+  id                 String    @id @default(cuid())
+  userId             String
+  type               String    // "oauth", "oidc", etc.
+  provider           String    // "github", "google", etc.
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+// "Is the user currently logged in?"
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  expires      DateTime
+  sessionToken String   @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+//when a request comes in = browser cookie-> sessionToken -> find session -> find User
+//"Verify this email"
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[] //a user can have multiple accounts
+  sessions      Session[] //a user can have multiple sessions
+  jobs          Job[]     @relation("PostedJobs") //a user can apply to many jobs
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  applications Application[]
+}
+
+//model for job posting
+model Job {
+  id          String  @id @default(cuid())
+  title       String
+  company     String
+  location    String
+  type        String
+  description String
+  salary      String?
+
+  postedAt   DateTime @default(now())
+  postedBy   User     @relation("PostedJobs", fields: [postedById], references: [id])
+  postedById String
+  applications Application[] //a job can recieve many applications
+}
+//join/bridge betwwen user and job
+model Application {
+  id String @id @default(cuid())
+  jobId String
+  userId String
+  status String @default("PENDING") //expand to reviewing, expanded, accepted
+  appliedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])//application belongs to aa user 
+  job Job @relation(fields: [jobId], references: [id])// applciation belongs to a job
+  @@unique([jobId, userId]) //a user can apply to a job only once
+}
+//user shouldn't be able to apply to a job multiple times 
