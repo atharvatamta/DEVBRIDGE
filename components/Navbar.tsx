@@ -1,11 +1,13 @@
 "use client";
-
+//navbar is a client component
 import Link from "next/link";
 import Image from "next/image";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
+
 
 export default function Navbar() {
-  const {data} = useSession()
+  const {data:session} = useSession()
+
   return (
     <nav className="bg-white shadow-sm rounded-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -20,7 +22,7 @@ export default function Navbar() {
                 className="h-8 w-auto"
               />
               <span className="ml-1 text-xl font-semibold text-gray-900">
-                 DevBridge
+                DevBridge
               </span>
             </Link>
           </div>
@@ -32,6 +34,7 @@ export default function Navbar() {
             >
               Browse Jobs
             </Link>
+            {session ? (
             <>
               <Link
                 href="/jobs/post"
@@ -45,18 +48,20 @@ export default function Navbar() {
               >
                 Dashboard
               </Link>
-              <button className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+              <button 
+              onClick={() => signOut({ callbackUrl: "/auth/signin" })}
+              className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
                 Sign Out
               </button>
             </>
-            : (
+            ) : (
             <Link
               href="/auth/signin"
               className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
             >
               Sign In
             </Link>
-            )
+            )}
           </div>
         </div>
       </div>
